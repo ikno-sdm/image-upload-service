@@ -1,25 +1,32 @@
 package com.microservices2.cargaimagenes.service.dto;
-
 public class FileDTO {
-  
-    private int projectId;
-    private String ruta;
 
-    public FileDTO(int projectId, String ruta) {
-        this.projectId = projectId;
-        this.ruta = ruta;
+    private String name;
+    private String workflowDirectory;
+    private byte[] content;  // Datos binarios del archivo
+
+    // Getters y Setters
+    public String getName() {
+        return name;
     }
 
-    public int getProjectId() {
-        return projectId;
+    public void setName(String name) {
+        this.name = name;
     }
-    public void setProjectId(int projectId) {
-        this.projectId = projectId;
+
+    public String getWorkflowDirectory() {
+        return workflowDirectory;
     }
-    public String getRuta() {
-        return ruta;
+
+    public void setWorkflowDirectory(String path) {
+        this.workflowDirectory = path;
     }
-    public void setRuta(String ruta) {
-        this.ruta = ruta;
+
+    public byte[] getContent() {
+        return content;
+    }
+
+    public void setContent(byte[] content) {
+        this.content = content;
     }
 }

@@ -2,62 +2,44 @@ package com.microservices2.cargaimagenes.service;
 
 import java.io.IOException;
 
-import java.io.File;
-import java.nio.file.Path;
-import java.nio.file.Files;
-
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
-import com.microservices2.cargaimagenes.domain.port.FileProcessingPort;
-import com.microservices2.cargaimagenes.domain.port.FileSavePort;
+import com.microservices2.cargaimagenes.domain.port.FileRepositoryPort;
+import com.microservices2.cargaimagenes.domain.port.ProjectRepository;
+import com.microservices2.cargaimagenes.service.dto.FileDTO;
 
 @Service
 public class FileService {
 
-    @Autowired
-    private FileProcessingPort fileProcessingPort;
+    private final FileRepositoryPort fileRepository;
+    private final ProjectRepository projectRepository;
 
-    @Autowired
-    private FileSavePort fileRepositoryPort;
+    public FileService(FileRepositoryPort fileRepository, ProjectRepository projectRepository) {
+        this.fileRepository = fileRepository;
+        this.projectRepository = projectRepository;
+    }
 
-    public boolean processFile(MultipartFile file, int projectId) {
-        
-        String fileName = file.getOriginalFilename();
+    public String processFile(FileDTO fileDTO, int projectId) throws IOException {
+        String fileName = fileDTO.getName();
+
         if (isValidFileFormat(fileName)) {
+        
+            fileDTO.setWorkflowDirectory(projectRepository.findByProjectIdProcessingDirectory(projectId));
 
-            // Crear el archivo temporal en el directorio temporal del sistema
-            File domainFile = new File(System.getProperty("java.io.tmpdir"), fileName);
-            try {
-                // Escribir el contenido del archivo subido en el archivo temporal
-                Path tempPath = domainFile.toPath();
-                Files.copy(file.getInputStream(), tempPath);
-    
-                // Procesar el archivo
-                //boolean isProcess = fileProcessingPort.process(domainFile);
-    
-                // Almacenar el archivo en el sistema de archivos
-                boolean isStored = fileRepositoryPort.saveFile(domainFile, projectId);
-    
-                if (!isStored) {
-                    return false;
-                }
-
-                Files.deleteIfExists(tempPath);
-                
-                return isStored;
-            } catch (IOException e) {
-                e.printStackTrace(); // Manejar excepciones de IO
-                return false;
+            
+            if (fileDTO.getWorkflowDirectory() == null || fileDTO.getWorkflowDirectory().isEmpty()) {
+                throw new IOException("No se encontró el directorio de procesamiento para el proyecto con ID: " + projectId);
             }
+
+            return fileRepository.save(fileDTO, projectId);
+
         } else {
-            return false;
+            throw new IOException("Formato de archivo no válido");
         }
     }
 
-    public static boolean isValidFileFormat(String fileName) {
-        // Regex para TIFF, PDF, JPG, JPEG, RAR, ZIP y otros formatos de compresión abiertos
+    // Método auxiliar para validar el formato de archivo
+    private boolean isValidFileFormat(String fileName) {
         String regex = ".*\\.(tiff|tif|pdf|jpg|jpeg|rar|zip|7z|tar|gz|bz2|xz)$";
         return fileName.toLowerCase().matches(regex);
     }

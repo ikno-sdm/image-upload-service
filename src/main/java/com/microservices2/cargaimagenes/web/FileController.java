@@ -1,6 +1,7 @@
 package com.microservices2.cargaimagenes.web;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import java.io.IOException;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -10,25 +11,36 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.microservices2.cargaimagenes.service.FileService;
+import com.microservices2.cargaimagenes.service.dto.FileDTO;
 
 @RestController
 @RequestMapping("/files")
 public class FileController {
 
-    @Autowired
-    private FileService fileService;
+    private final FileService fileService;
+
+    public FileController(FileService fileService) {
+        this.fileService = fileService;
+    }
 
     @PostMapping("/upload")
     public ResponseEntity<String> uploadFile(
         @RequestParam("file") MultipartFile file,
         @RequestParam("projectId") int projectId
         ) {
+        try {
+
+            FileDTO fileDTO = new FileDTO();
+            fileDTO.setName(file.getOriginalFilename());
+            fileDTO.setContent(file.getBytes());
+
+            String filePath = fileService.processFile(fileDTO, projectId);
         
-        boolean result = fileService.processFile(file, projectId);
-        if (result) {
-            return ResponseEntity.ok("File uploaded successfully");
-        } else {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("File uploaded failed");
+            return ResponseEntity.ok(filePath);
+
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                                 .body(e.getMessage());
         }
     }
 }
